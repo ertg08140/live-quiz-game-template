@@ -2,6 +2,7 @@ import { Server, WebSocket } from 'ws';
 import { transformDataToMessage } from './utils/transformDataToMessage';
 import { handlers } from './handler/handlers';
 import { WSMessage } from './types';
+import { exitHandler } from './handler/exitHandler';
 
 export const startWsServer = (wss: Server) => {
   wss.on('connection', (ws: WebSocket) => {
@@ -26,6 +27,9 @@ export const startWsServer = (wss: Server) => {
       }
     });
 
-    ws.on('close', () => console.log('Клиент отключился'));
+    ws.on('close', () => {
+      console.log('Клиент отключился');
+      exitHandler(ws);
+    });
   });
 };

@@ -2,7 +2,7 @@ import { WebSocket } from 'ws';
 import { loginHandler } from './loginHandler';
 import { WSMessage } from '../types';
 import { createGameHandler, joinGameHandler } from './gameManagmentHandler';
-import { startGameHandler } from './gamePlayHandler';
+import { questionAnswerHandler, startGameHandler } from './gamePlayHandler';
 
 export const handlers = {
   reg: (ws: WebSocket, data: WSMessage['data']) => {
@@ -20,5 +20,9 @@ export const handlers = {
   start_game: (ws: WebSocket, data: WSMessage['data']) => {
     console.log('start_game', data);
     return startGameHandler(ws, data);
+  },
+  answer: (ws: WebSocket, data: WSMessage['data']) => {
+    console.log('answer', data);
+    return questionAnswerHandler(ws, data);
   },
 };
