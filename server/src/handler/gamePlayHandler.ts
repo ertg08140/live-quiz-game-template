@@ -4,6 +4,7 @@ import { GAMES_DB } from '../db';
 import { broadcastMessage } from '../utils/broadcastMessage';
 
 const BASE_POINTS = 1000;
+const TIMEOUT_BEFORE_NEXT_QUESTION = 2000;
 
 const gameTimers = new Map<string, NodeJS.Timeout>();
 
@@ -20,10 +21,12 @@ const handleQuestionTimeout = (gameId: string) => {
     let pointsEarned = 0;
 
     if (player.hasAnswered && player.answeredCorrectly) {
-      const questionStartTime = questionStartTimes.get(gameId) || Date.now();
+      const questionStartTime =
+        questionStartTimes.get(gameId) ||
+        Date.now() + TIMEOUT_BEFORE_NEXT_QUESTION;
       const elapsedTime = (Date.now() - questionStartTime) / 1000;
       const timeRemaining = Math.max(0, timeLimit - elapsedTime);
-      pointsEarned = Math.round(BASE_POINTS * (timeRemaining / timeLimit));
+      pointsEarned = Math.round((BASE_POINTS * timeRemaining) / timeLimit);
       player.score += pointsEarned;
     }
 
@@ -65,15 +68,18 @@ const handleQuestionTimeout = (gameId: string) => {
       },
       id: 0,
     });
-    broadcastMessage(game, nextQuestion);
+
+    setTimeout(() => {
+      broadcastMessage(game, nextQuestion);
+      questionStartTimes.set(gameId, Date.now());
+    }, TIMEOUT_BEFORE_NEXT_QUESTION);
 
     game.currentQuestion += 1;
 
-    questionStartTimes.set(gameId, Date.now());
     const nextTimeLimitMs = questions[currentQuestion].timeLimitSec * 1000;
     const nextTimer = setTimeout(() => {
       handleQuestionTimeout(gameId);
-    }, nextTimeLimitMs);
+    }, nextTimeLimitMs + TIMEOUT_BEFORE_NEXT_QUESTION);
 
     gameTimers.set(gameId, nextTimer);
   } else {
@@ -95,9 +101,11 @@ const handleQuestionTimeout = (gameId: string) => {
       },
       id: 0,
     });
-    broadcastMessage(game, gameFinished);
-    gameTimers.delete(gameId);
-    questionStartTimes.delete(gameId);
+    setTimeout(() => {
+      broadcastMessage(game, gameFinished);
+      gameTimers.delete(gameId);
+      questionStartTimes.delete(gameId);
+    }, TIMEOUT_BEFORE_NEXT_QUESTION);
   }
 };
 
