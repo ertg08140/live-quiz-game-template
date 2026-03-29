@@ -2,6 +2,7 @@ import { WebSocket } from 'ws';
 import { WSMessage } from '../types';
 import { randomUUID, randomBytes } from 'node:crypto';
 import { GAMES_DB, USERS_DB } from '../db';
+import { broadcastMessage } from '../utils/broadcastMessage';
 
 export const createGameHandler = (ws: WebSocket, data: WSMessage['data']) => {
   const { questions } = data;
@@ -50,7 +51,7 @@ export const joinGameHandler = (ws: WebSocket, data: WSMessage['data']) => {
   const { code } = data;
 
   const game = GAMES_DB.find((game) => game.code === code);
-  console.log('game', game);
+
   const user = USERS_DB.find((user) => user.ws === ws);
   const isPlayerExist =
     game?.players.findIndex((player) => player.ws === ws) !== -1;
@@ -70,7 +71,7 @@ export const joinGameHandler = (ws: WebSocket, data: WSMessage['data']) => {
     );
     return;
   }
-  game?.players.push({ ...user, score: 0 });
+  game.players.push({ ...user, score: 0 });
   ws.send(
     JSON.stringify({
       type: 'game_joined',
@@ -106,13 +107,5 @@ export const joinGameHandler = (ws: WebSocket, data: WSMessage['data']) => {
     id: 0,
   });
 
-  game.players.forEach((user) => {
-    if (user.ws?.readyState === WebSocket.OPEN) {
-      user.ws.send(updatePlayers);
-    }
-  });
-
-  if (game.host.ws?.readyState === WebSocket.OPEN) {
-    game.host.ws.send(updatePlayers);
-  }
+  broadcastMessage(game, updatePlayers);
 };

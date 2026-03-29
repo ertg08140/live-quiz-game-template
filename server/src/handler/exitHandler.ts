@@ -1,5 +1,6 @@
 import { WebSocket } from 'ws';
 import { GameDb, GAMES_DB, USERS_DB } from '../db';
+import { broadcastMessage } from '../utils/broadcastMessage';
 
 export const exitHandler = (ws: WebSocket) => {
   const userIndex = USERS_DB.findIndex((user) => user.ws === ws);
@@ -19,7 +20,6 @@ export const exitHandler = (ws: WebSocket) => {
   }
 
   if (playingGame) {
-    console.log('player disconnected');
     const playersData = playingGame.players.map((player) => ({
       name: player.name,
       index: player.index,
@@ -30,15 +30,6 @@ export const exitHandler = (ws: WebSocket) => {
       data: playersData,
       id: 0,
     });
-
-    playingGame.players.forEach((player) => {
-      if (player.ws?.readyState === WebSocket.OPEN) {
-        player.ws.send(updatePlayers);
-      }
-    });
-
-    if (playingGame.host.ws?.readyState === WebSocket.OPEN) {
-      playingGame.host.ws.send(updatePlayers);
-    }
+    broadcastMessage(playingGame, updatePlayers);
   }
 };

@@ -6,29 +6,23 @@ import { exitHandler } from './handler/exitHandler';
 
 export const startWsServer = (wss: Server) => {
   wss.on('connection', (ws: WebSocket) => {
-    console.log('Клиент подключен');
-
     ws.on('message', (data: Buffer) => {
-      // В ws сообщения приходят в виде Buffer, переводим в строку
       const message: WSMessage = transformDataToMessage(data);
 
       try {
-        // Ищем обработчик по типу
-        const handler = handlers[message.type];
+        const handler = handlers[message.type as keyof typeof handlers];
 
         if (handler) {
-          handler(ws, message.data, wss);
+          handler(ws, message.data);
         } else {
-          console.warn(`Неизвестный тип сообщения: ${message.type}`);
           ws.send(JSON.stringify({ error: 'Unknown message type' }));
         }
       } catch (err) {
-        console.error('Ошибка парсинга:', err);
+        console.error('Error', err);
       }
     });
 
     ws.on('close', () => {
-      console.log('Клиент отключился');
       exitHandler(ws);
     });
   });
